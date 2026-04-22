@@ -1,0 +1,48 @@
+@startuml
+' Visual Configuration
+skinparam Style strictuml
+skinparam sequenceMessageAlign center
+skinparam MaxMessageSize 150
+
+actor "Hospital Staff" as Staff #LightBlue
+participant "Blood Platform\n(Server)" as System #White
+database "Database" as DB #White
+actor "Eligible Donor" as Donor #LightGreen
+
+== Step 1: Emergency Request Creation ==
+
+Staff -> System : Submit Emergency Request (Type, Quantity, Location) [cite: 108, 109]
+activate System
+
+System -> DB : Query compatible donors in 5-50km radius [cite: 93, 178]
+activate DB
+DB --> System : Return list of matched donors [cite: 94]
+deactivate DB
+
+== Step 2: Real-Time Notification ==
+
+System -> System : Trigger Smart Matching Algorithm [cite: 48, 123]
+note right : Target response: < 3 seconds 
+
+System -> Donor : Send Push Notification (Urgency, Distance) [cite: 61, 177]
+activate Donor
+
+== Step 3: Donor Response ==
+
+Donor -> System : Click "I Can Donate" [cite: 180, 201]
+deactivate Donor
+
+System -> DB : Increment "Committed Donor" count [cite: 201]
+System -> Staff : Update Request Status: Donor Found [cite: 137]
+
+== Step 4: System Auto-Management ==
+
+alt Donor Commitments >= 150% of Required Units [cite: 198]
+    System -> System : Change status to "Pending Fulfillment" [cite: 202]
+    System -> DB : Stop broadcasting request [cite: 193, 203]
+    System -> Staff : Notify: Goal Reached [cite: 202]
+end
+
+deactivate System
+
+@enduml
