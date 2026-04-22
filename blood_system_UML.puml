@@ -1,0 +1,98 @@
+@startuml
+left to right direction
+skinparam packageStyle rectangle
+
+skinparam usecase {
+    BackgroundColor LightBlue
+    BorderColor DarkBlue
+    FontColor Black
+}
+skinparam actor {
+    BackgroundColor GhostWhite
+    BorderColor Red
+}
+
+
+
+' Define Actors
+actor "App Admin" as AppAdmin
+
+actor "General User" as GeneralUser
+actor "Donor" as Donor
+actor "Hospital" as Hospital
+
+actor "Hospital Staff" as Staff
+actor "Hospital Admin" as HospAdmin
+
+' Actor Inheritance
+GeneralUser <|-- Donor
+GeneralUser <|-- Hospital
+Hospital <|-- Staff
+Hospital <|-- HospAdmin
+
+' System Boundary
+rectangle "Blood Donation Platform" {
+    
+    ' General User Use Cases
+    usecase "View Local Emergency Needs" as UC_ViewNeeds
+    usecase "Register Account" as UC_Register
+
+    ' Donor Use Cases
+    usecase "Manage Profile & Availability" as UC_ManageProfile
+    usecase "Book/Reschedule Appointment" as UC_ManageAppt
+    usecase "Receive Notifications" as UC_ReceiveNotif
+    usecase "Accept Blood Request" as UC_AcceptRequest
+    usecase "Track Blood Journey & History" as UC_TrackBlood
+
+    ' Hospital Use Cases (Inherited by Staff and HospAdmin)
+    usecase "Submit Blood Request" as UC_SubmitRequest
+    usecase "Define Available Time Slots" as UC_DefineSlots
+    usecase "Manage Donor Appointments" as UC_HospManageAppt
+    usecase "View Request History" as UC_ViewHospHistory
+
+    ' Hospital Admin Specific Use Cases
+    usecase "Review & Approve Pending Requests" as UC_ApproveRequests
+    usecase "Mark Request as Fulfilled" as UC_FulfillRequest
+
+    ' App Admin Use Cases
+    usecase "Manage Hospital Accounts" as UC_ManageHospitals
+    usecase "Manage User Accounts" as UC_ManageUsers
+    usecase "View Platform Statistics" as UC_ViewStats
+
+    usecase "Verify Identity" as UC_Verify
+    usecase "Emergency Flag" as UC_Emergency
+
+    ' Connecting ovals to each other
+    UC_Register ..> UC_Verify : <<include>>
+    UC_Emergency ..> UC_SubmitRequest : <<extend>>
+}
+
+' Connect Actors to Use Cases
+
+' General User
+GeneralUser --> UC_ViewNeeds
+GeneralUser --> UC_Register
+
+' Donor
+Donor --> UC_ManageProfile
+Donor --> UC_ManageAppt
+Donor --> UC_ReceiveNotif
+Donor --> UC_AcceptRequest
+Donor --> UC_TrackBlood
+
+' Hospital (General actions done by Staff or Admin)
+Hospital --> UC_SubmitRequest
+Hospital --> UC_DefineSlots
+Hospital --> UC_HospManageAppt
+Hospital --> UC_ViewHospHistory
+
+' Hospital Admin (Specific administrative actions)
+HospAdmin --> UC_ApproveRequests
+HospAdmin --> UC_FulfillRequest
+
+' App Admin
+AppAdmin --> UC_ManageHospitals
+AppAdmin --> UC_ManageUsers
+AppAdmin --> UC_ViewStats
+
+@enduml
