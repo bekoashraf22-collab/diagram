@@ -3,9 +3,9 @@
 skinparam classAttributeIconSize 0
 skinparam classFontStyle Bold
 skinparam classBackgroundColor #F9F9F9
-skinparam classBorderColor #CC0000
-skinparam arrowColor #CC0000
-skinparam classHeaderBackgroundColor #CC0000
+skinparam classBorderColor #000000
+skinparam arrowColor #000000
+skinparam classHeaderBackgroundColor #edecec
 skinparam classFontColor #FFFFFF
 skinparam classAttributeFontColor #000000
 skinparam classStereotypeFontColor #000000
