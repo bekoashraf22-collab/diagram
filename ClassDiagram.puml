@@ -1,0 +1,167 @@
+@startuml BloodRescuePlatform
+
+skinparam classAttributeIconSize 0
+skinparam classFontStyle Bold
+skinparam classBackgroundColor #F9F9F9
+skinparam classBorderColor #CC0000
+skinparam arrowColor #CC0000
+skinparam classHeaderBackgroundColor #CC0000
+skinparam classFontColor #FFFFFF
+skinparam classAttributeFontColor #000000
+skinparam classStereotypeFontColor #000000
+
+' ─────────────────────────────
+'  USER & DONOR
+' ─────────────────────────────
+
+class User {
+  - userID : String
+  - email : String
+  - password : String
+  - phone : String
+  - role : String
+  --
+  + register() : void
+  + login() : void
+  + logout() : void
+  + updateProfile() : void
+}
+
+class DonorProfile {
+  - donorID : String
+  - fullName : String
+  - bloodType : String
+  - currentLocation : GPS
+  - availabilityStatus : Boolean
+  - points : int
+  --
+  + toggleAvailability() : void
+  + getLocation() : GPS
+  + getDonationHistory() : List<BloodUnit>
+  + getPoints() : int
+}
+
+' ─────────────────────────────
+'  BLOOD UNIT
+' ─────────────────────────────
+
+class BloodUnit {
+  - unitID : String
+  - bloodType : String
+  - donorID : String
+  - hospitalID : String
+  - stage : String
+  - collectionDate : Date
+  - expiryDate : Date
+  - quantity : int
+  --
+  + updateStage(newStage : String) : void
+  + getStage() : String
+  + isExpired() : Boolean
+  + getTrackingHistory() : List<StageLog>
+  + notifyDonor() : void
+}
+
+' ─────────────────────────────
+'  APPOINTMENT
+' ─────────────────────────────
+
+class Appointment {
+  - appointmentID : String
+  - donorID : String
+  - hospitalID : String
+  - timeSlot : DateTime
+  - status : String
+  --
+  + book() : void
+  + cancel() : void
+  + reschedule(newSlot : DateTime) : void
+  + getStatus() : String
+}
+
+' ─────────────────────────────
+'  BLOOD REQUEST
+' ─────────────────────────────
+
+class BloodRequest {
+  - requestID : String
+  - hospitalID : String
+  - bloodType : String
+  - quantity : int
+  - isEmergency : Boolean
+  - status : String
+  - submittedAt : DateTime
+  --
+  + submitRequest() : void
+  + cancelRequest() : void
+  + findNearbyDonors() : List<DonorProfile>
+  + getStatus() : String
+  + getRequestHistory() : List<BloodRequest>
+}
+
+' ─────────────────────────────
+'  HOSPITAL
+' ─────────────────────────────
+
+class Hospital {
+  - hospitalID : String
+  - name : String
+  - location : GPS
+  - contactInfo : String
+  - isVerified : Boolean
+  --
+  + submitBloodRequest() : BloodRequest
+  + defineTimeSlots() : void
+  + confirmAppointment(apptID : String) : void
+  + cancelAppointment(apptID : String) : void
+  + getRequestHistory() : List<BloodRequest>
+}
+
+' ─────────────────────────────
+'  REWARD
+' ─────────────────────────────
+
+class Reward {
+  - rewardID : String
+  - donorID : String
+  - points : int
+  - isEmergencyBonus : Boolean
+  - awardedAt : DateTime
+  --
+  + awardPoints() : void
+  + awardEmergencyBonus() : void
+  + getTotalPoints() : int
+}
+
+' ─────────────────────────────
+'  ADMIN
+' ─────────────────────────────
+
+class Admin {
+  - adminID : String
+  - name : String
+  --
+  + viewAllUsers() : List<User>
+  + approveHospital(hospitalID : String) : void
+  + rejectHospital(hospitalID : String) : void
+  + banAccount(userID : String) : void
+  + suspendAccount(userID : String) : void
+  + getPlatformStats() : Stats
+}
+
+' ─────────────────────────────
+'  RELATIONSHIPS
+' ─────────────────────────────
+
+User "1" -- "1" DonorProfile         : has >
+User "1" -- "0..*" Appointment       : books >
+Hospital "1" -- "0..*" BloodRequest  : submits >
+Hospital "1" -- "0..*" Appointment   : manages >
+Hospital "1" -- "0..*" BloodUnit     : receives >
+DonorProfile "1" -- "0..*" BloodUnit : donates >
+BloodUnit "0..*" -- "1" BloodRequest : fulfills >
+DonorProfile "1" -- "0..*" Reward    : earns >
+Admin "1" -- "0..*" User             : manages >
+Admin "1" -- "0..*" Hospital         : approves >
+
+@enduml
