@@ -1,0 +1,98 @@
+@startuml Seq1_BookAppointment
+
+skinparam sequenceMessageAlign center
+skinparam responseMessageBelowArrow true
+skinparam maxMessageSize 200
+
+skinparam participant {
+  BackgroundColor #F9F9F9
+  BorderColor #CC0000
+  FontColor #000000
+}
+
+skinparam sequence {
+  ArrowColor #CC0000
+  LifeLineBorderColor #CC0000
+  LifeLineBackgroundColor #FFE5E5
+  GroupBackgroundColor #FFF0F0
+  GroupBorderColor #CC0000
+}
+
+skinparam note {
+  BackgroundColor #FFF0F0
+  BorderColor #CC0000
+}
+
+title Sequence Diagram 1 – Donor Books a Donation Appointment
+
+actor Donor
+participant "Mobile App" as App
+participant "Appointment\nController" as AC
+participant "Hospital\nService" as HS
+participant "Notification\nService" as NS
+database "Database" as DB
+
+' ─────────────────────────────
+' Step 1: View available centers
+' ─────────────────────────────
+Donor -> App : Open "Book Appointment" screen
+App -> AC : getAvailableCenters(location)
+AC -> HS : fetchCentersNearby(location)
+HS -> DB : SELECT hospitals WHERE verified = true
+DB --> HS : hospitals list
+HS --> AC : return hospitals + time slots
+AC --> App : display centers & available slots
+App --> Donor : Show list of hospitals and slots
+
+' ─────────────────────────────
+' Step 2: Donor selects a slot
+' ─────────────────────────────
+Donor -> App : Select hospital + time slot
+App -> AC : bookAppointment(donorID, hospitalID, timeSlot)
+
+' ─────────────────────────────
+' Step 3: Validate & save
+' ─────────────────────────────
+AC -> DB : CHECK donor availability status
+DB --> AC : status = active
+
+alt Donor is active
+    AC -> DB : INSERT new Appointment record
+    DB --> AC : appointment saved (appointmentID)
+
+    ' ─────────────────────────────
+    ' Step 4: Notify both parties
+    ' ─────────────────────────────
+    AC -> NS : sendConfirmation(donorID, appointmentID)
+    NS --> Donor : Push notification – "Appointment confirmed"
+
+    AC -> NS : notifyHospital(hospitalID, appointmentID)
+    NS --> HS : Email/SMS – "New appointment booked"
+
+    AC --> App : return success + appointment details
+    App --> Donor : Show confirmation screen
+
+else Donor is inactive
+    AC --> App : return error – "Account inactive"
+    App --> Donor : Show error – "Please activate your account"
+end
+
+' ─────────────────────────────
+' Step 5: Optional reschedule
+' ─────────────────────────────
+note over Donor, App
+  Donor may later choose to
+  reschedule or cancel from
+  their appointment history
+end note
+
+Donor -> App : Reschedule appointment
+App -> AC : rescheduleAppointment(appointmentID, newSlot)
+AC -> DB : UPDATE appointment SET timeSlot = newSlot
+DB --> AC : updated
+AC -> NS : sendRescheduleNotification(donorID, hospitalID)
+NS --> Donor : Push notification – "Appointment rescheduled"
+AC --> App : return success
+App --> Donor : Show updated appointment
+
+@enduml
