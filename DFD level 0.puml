@@ -1,0 +1,95 @@
+@startuml DFD_Level0
+
+skinparam linetype ortho
+skinparam nodesep 60
+skinparam ranksep 80
+skinparam defaultTextAlignment center
+
+skinparam rectangle {
+  BorderColor #CC0000
+  FontColor #000000
+  FontSize 12
+  FontStyle Bold
+  BorderThickness 2
+  BackgroundColor #F9F9F9
+  RoundCorner 0
+}
+
+skinparam card {
+  BackgroundColor #FFE5E5
+  BorderColor #CC0000
+  BorderThickness 2
+  FontSize 11
+  FontColor #000000
+}
+
+skinparam collections {
+  BorderColor #CC0000
+  FontColor #000000
+  FontSize 11
+  BorderThickness 2
+  BackgroundColor #FFFFFF
+}
+
+skinparam arrow {
+  Color #CC0000
+  FontColor #333333
+  FontSize 10
+}
+
+title <size:16><b>DFD - Level 0</b></size>\nBlood Donation Platform
+
+' EXTERNAL ENTITIES
+rectangle "Donor" as DONOR
+rectangle "Hospital" as HOSP
+rectangle "Admin" as ADMIN
+
+' PROCESSES
+card "  **1.0**  \n----------\nManage\nDonor Profile" as P1
+card "  **2.0**  \n----------\nProcess\nBlood Request" as P2
+card "  **3.0**  \n----------\nManage\nAppointments" as P3
+card "  **4.0**  \n----------\nTrack\nBlood Unit" as P4
+card "  **5.0**  \n----------\nMonitor\nPlatform" as P5
+
+' DATA STORES
+collections "D1 | Donor Profiles" as DS1
+collections "D2 | Blood Requests" as DS2
+collections "D3 | Appointments" as DS3
+collections "D4 | Blood Units" as DS4
+
+' DATA FLOWS - Donor
+DONOR -right-> P1 : Profile data
+P1 -left-> DONOR : Confirmation
+
+DONOR -right-> P3 : Booking request
+P3 -left-> DONOR : Appointment details
+
+' DATA FLOWS - Hospital
+HOSP -left-> P2 : Blood request
+P2 -right-> HOSP : Request status
+
+HOSP -left-> P3 : Slot confirmation
+
+' DATA FLOWS - Admin
+ADMIN -down-> P5 :\nReports\n\n\n\n
+P5 -up-> ADMIN :Admin actions\n\n\n\n
+
+' FLOWS - Processes to Data Stores
+
+
+P1 -down-> DS2 :\n Blood request log
+DS1 -up-> P2 : .
+
+P3 -down-> DS3 : Appointment record
+DS3 -up-> P3 :\n\n\n Appointment data
+
+P4 -down-> DS4 : \t\t\t\tblood unit stage saving
+DS4 -up-> P4 :\n\n\n blood unit data
+
+' FLOWS - Between Processes
+P2 -right-> P4 : Donation confirmed
+DS1 -right-> P2 : Matched donors
+P5 -left-> DS1 : Account update
+DS2 -right-> P5 :\n\n Statistics
+
+@enduml

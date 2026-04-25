@@ -1,0 +1,77 @@
+@startuml DFD_Level1_HospitalBloodRequests
+
+skinparam linetype ortho
+skinparam nodesep 70
+skinparam ranksep 90
+skinparam defaultTextAlignment center
+
+skinparam rectangle {
+  BorderColor #CC0000
+  FontColor #000000
+  FontSize 12
+  FontStyle Bold
+  BorderThickness 2
+  BackgroundColor #F9F9F9
+  RoundCorner 0
+}
+
+skinparam card {
+  BackgroundColor #FFE5E5
+  BorderColor #CC0000
+  BorderThickness 2
+  FontSize 11
+  FontColor #000000
+}
+
+skinparam collections {
+  BorderColor #CC0000
+  FontColor #000000
+  FontSize 11
+  BorderThickness 2
+  BackgroundColor #FFFFFF
+}
+
+skinparam arrow {
+  Color #CC0000
+  FontColor #333333
+  FontSize 10
+}
+
+title <size:16><b>DFD - Level 1</b></size>\nDecomposition of Process 2.0: Hospital Blood Requests
+
+' EXTERNAL ENTITIES
+rectangle "Hospital" as HOSP
+rectangle "Donor" as DONOR
+
+' SUB-PROCESSES
+card "  **2.1**  \n----------\nSubmit Blood\nRequest" as P21
+card "  **2.2**  \n----------\nFind Nearby\nDonors" as P22
+card "  **2.3**  \n----------\nSend\nEmergency Alert" as P23
+card "  **2.4**  \n----------\nView Request\nHistory" as P24
+
+' DATA STORES
+collections "D1 | Donor Profiles" as DS1
+collections "D2 | Blood Requests" as DS2
+
+' DATA FLOWS
+
+' Hospital inputs
+HOSP -right-> P21 : Blood request details
+HOSP -right-> P24 : History query
+
+' Submit Blood Request
+P21 -down-> DS2 : Store request
+P21 -down-> P22 : Emergency level
+
+' Find Nearby Donors
+DS1 -right-> P22 : Donor GPS data
+P22 -right-> P23 : Matched donors list
+
+' Send Emergency Alert
+P23 -up-> DONOR : Emergency alert
+
+' View Request History
+DS2 -right-> P24 : Request records
+P24 -left-> HOSP : \n\n\n\n\n\n\nRequest history
+
+@enduml
