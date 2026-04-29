@@ -1,0 +1,145 @@
+@startuml Making_Appointment
+
+skinparam sequenceArrowThickness 1.5
+skinparam roundcorner 0
+skinparam sequenceParticipantBorderColor #000000
+skinparam sequenceParticipantBackgroundColor #FFFFFF
+skinparam sequenceActorBorderColor #000000
+skinparam sequenceActorBackgroundColor #FFFFFF
+skinparam sequenceLifeLineBorderColor #000000
+skinparam sequenceLifeLineBorderThickness 1
+skinparam sequenceBoxBorderColor #000000
+skinparam sequenceGroupBorderColor #000000
+skinparam sequenceGroupBackgroundColor #FFFFFF
+skinparam sequenceGroupFontColor #000000
+skinparam sequenceGroupBodyBackgroundColor #FFFFFF
+skinparam sequenceArrowColor #000000
+skinparam backgroundColor #FFFFFF
+skinparam shadowing false
+skinparam participantPadding 20
+skinparam sequenceMessageAlign left
+
+title Making an Appointment — Sequence Diagram
+
+' ─────────────────────────────────────
+'  PARTICIPANTS
+' ─────────────────────────────────────
+actor       "Donor"                             as D
+boundary    "appointmentPage:\nAppointmentPage" as APP
+control     ": AppointmentController"           as AC
+entity      "hospital:\nHospital"               as H
+entity      "slot:\nTimeSlot"                   as S
+database    ": Database"                        as DB
+actor       "<<system>>\nNotificationService"   as NS
+
+' ─────────────────────────────────────
+'  STEP 1 — DONOR STARTS APPOINTMENT
+' ─────────────────────────────────────
+D   ->  APP : startAppointment()
+activate APP
+
+APP ->  AC  : new(donor)
+activate AC
+
+' ─────────────────────────────────────
+'  STEP 2 — FETCH NEARBY HOSPITALS VIA GPS
+' ─────────────────────────────────────
+AC  ->  DB  : fetchNearbyHospitals(donorLocation)
+activate DB
+DB  --> AC  : hospitalList
+deactivate DB
+
+' ─────────────────────────────────────
+'  STEP 3 — LOAD SLOTS FOR EACH HOSPITAL
+' ─────────────────────────────────────
+loop [for each hospital]
+    AC  ->  S  : getAvailableSlots(hospitalID)
+    activate S
+    S   ->  S  : filterByDate()
+    S   ->  DB : querySlots(hospitalID)
+    activate DB
+    DB  --> S  : slotRecords[]
+    deactivate DB
+    S   --> AC : availableSlots[]
+    deactivate S
+end
+
+' ─────────────────────────────────────
+'  STEP 4 — DISPLAY HOSPITALS & SLOTS TO DONOR
+' ─────────────────────────────────────
+AC  --> APP : displayHospitalsAndSlots()
+APP --> D   : Show hospitals & available time slots
+
+' ─────────────────────────────────────
+'  STEP 5 — DONOR SELECTS SLOT & SUBMITS
+' ─────────────────────────────────────
+D   ->  APP : selectSlot(hospitalID, slotID)
+APP ->  AC  : submitAppointment(donorID, hospitalID, slotID)
+
+AC  ->  DB  : saveAppointment(donorID, slotID,\nstatus="Pending")
+activate DB
+DB  --> AC  : appointmentID
+deactivate DB
+
+AC  --> APP : return pending(appointmentID)
+APP --> D   : Show "Pending hospital confirmation"
+
+' ─────────────────────────────────────
+'  STEP 6 — HOSPITAL CONFIRMS OR DENIES
+' ─────────────────────────────────────
+alt [Hospital confirms appointment]
+
+    H   ->  AC : confirmAppointment(appointmentID)
+    activate H
+
+    AC  ->  DB : updateStatus(appointmentID,\nstatus="Confirmed")
+    activate DB
+    DB  --> AC : updated
+    deactivate DB
+
+    ' Lock the slot so no other donor can book it
+    AC  ->  S  : markSlotUnavailable(slotID)
+    activate S
+    S   ->  DB : updateSlot(slotID, status="Taken")
+    activate DB
+    DB  --> S  : slotUpdated
+    deactivate DB
+    S   --> AC : slotLocked
+    deactivate S
+
+    deactivate H
+
+    AC  ->  NS : sendConfirmation(donorID,\nhospitalName, date, time)
+    activate NS
+    NS  --> D  : Push Notification:\n"Appointment Confirmed"
+    deactivate NS
+
+else [Hospital denies appointment]
+
+    H   ->  AC : denyAppointment(appointmentID)
+    activate H
+
+    AC  ->  DB : updateStatus(appointmentID,\nstatus="Denied")
+    activate DB
+    DB  --> AC : updated
+    deactivate DB
+
+    ' Slot remains available for other donors
+    deactivate H
+
+    AC  ->  NS : sendDenial(donorID,\nhospitalName, date, time)
+    activate NS
+    NS  --> D  : Push Notification:\n"Appointment Denied"
+    deactivate NS
+
+end
+
+' ─────────────────────────────────────
+'  STEP 7 — DONE
+' ─────────────────────────────────────
+AC  --> APP : return result
+deactivate AC
+APP --> D   : Show final confirmation screen
+deactivate APP
+
+@enduml
