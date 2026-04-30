@@ -1,0 +1,159 @@
+@startuml Seq_EmergencyBloodRequest
+
+skinparam sequenceMessageAlign left
+skinparam responseMessageBelowArrow true
+skinparam maxMessageSize 200
+
+skinparam actor {
+  BackgroundColor #FFFFFF
+  BorderColor #000000
+  FontColor #000000
+  FontSize 12
+}
+
+skinparam boundary {
+  BackgroundColor #FFFFFF
+  BorderColor #000000
+  FontColor #000000
+  FontSize 11
+}
+
+skinparam control {
+  BackgroundColor #FFFFFF
+  BorderColor #000000
+  FontColor #000000
+  FontSize 11
+}
+
+skinparam entity {
+  BackgroundColor #FFFFFF
+  BorderColor #000000
+  FontColor #000000
+  FontSize 11
+}
+
+skinparam sequence {
+  ArrowColor #000000
+  LifeLineBorderColor #000000
+  LifeLineBackgroundColor #FFFFFF
+  GroupBackgroundColor #FFFFFF
+  GroupBorderColor #000000
+  GroupFontColor #000000
+  GroupFontStyle bold
+  GroupBorderThickness 1
+}
+
+skinparam note {
+  BackgroundColor #FFFFF0
+  BorderColor #999999
+  FontColor #333333
+  FontSize 10
+}
+
+title Emergency Blood Request — Sequence Diagram 
+
+' ═══════════════════════════════════════════════════
+'  PARTICIPANTS 
+' ═══════════════════════════════════════════════════
+
+entity   "hospital:\nHospital"             as HS
+boundary "emergencyPage:\nEmergencyPage"   as EP
+control  ": RequestController"             as RC
+control  ": LocationService"               as GPS
+entity   ": DonorMatcher"                  as DM
+actor    "«system»\nNotificationService"   as NS
+actor    "Donor"                           as Donor
+
+' ═══════════════════════════════════════════════════
+'  STEP 1 – Hospital submits emergency request
+' ═══════════════════════════════════════════════════
+
+HS -> EP : startEmergencyRequest()
+activate EP
+
+EP -> RC : submitEmergencyRequest\n(hospitalID, bloodType, quantity)
+activate RC
+
+' ═══════════════════════════════════════════════════
+'  STEP 2 – Resolve hospital GPS location
+' ═══════════════════════════════════════════════════
+
+RC -> GPS : getHospitalLocation(hospitalID)
+activate GPS
+GPS --> RC :return GPS coordinates
+deactivate GPS
+
+' ═══════════════════════════════════════════════════
+'  STEP 3 – Find nearby matching donors
+' ═══════════════════════════════════════════════════
+
+RC -> DM : findNearbyDonors\n(bloodType, coordinates, radius=5-50km)
+activate DM
+DM --> RC : matchedDonors[ ] sorted by distance
+deactivate DM
+
+RC --> EP : matchedDonors[ ]
+EP --> HS : Show "Donors found – sending alerts"
+
+' ═══════════════════════════════════════════════════
+'  STEP 4 –  alert to ALL matched donors
+' ═══════════════════════════════════════════════════
+
+loop  for each donor in matchedDonors[ ] 
+
+  RC -> NS : sendEmergencyAlert\n(donorID, requestID,\nhospitalName, bloodType, distance)
+  NS --> Donor : Push Notification:\n"URGENT: Your blood type\nis needed nearby"
+
+end
+
+
+' ═══════════════════════════════════════════════════
+'  STEP 5 – Donor responds
+' ═══════════════════════════════════════════════════
+
+alt donor accepts request
+
+  Donor -> RC : acceptRequest(donorID, requestID)
+
+  RC -> NS : stopAlerts(requestID)
+  NS --> RC : all remaining alerts cancelled
+
+  RC --> EP : donorAccepted(donorID)
+
+else donor declines request
+
+  Donor -> RC : declineRequest(donorID, requestID)
+  RC --> Donor : "Understood, thank you"
+
+  RC --> EP : donorDeclined
+
+end
+
+' ═══════════════════════════════════════════════════
+'  STEP 6 – Final outcome
+' ═══════════════════════════════════════════════════
+
+alt  request completed
+
+  RC -> NS : notifyHospital\n(hospitalID, donorID, bloodType)
+  NS --> HS : Push Notification:\n"A donor accepted your request"
+
+ 
+  RC --> EP : return requestCompleted
+  EP --> HS : Show "Emergency request completed successfully"
+
+
+else no donor accepted
+
+  RC -> NS : notifyHospital(hospitalID)
+  NS --> HS : Push Notification:\n"No donors accepted –\nplease resubmit"
+
+  RC --> EP : return requestFailed
+  EP --> HS : Show "Request failed –\nno donors responded"
+
+end
+
+deactivate RC
+deactivate EP
+
+@enduml
